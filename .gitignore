@@ -127,4 +127,4 @@ dataset/
 model*
 s_s_*
 temp.png
-./test.py
+test.py
