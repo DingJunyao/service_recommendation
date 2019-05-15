@@ -10,16 +10,16 @@ import pandas as pd
 
 # 加载所有数据集
 users_title = ['UserID', 'Gender', 'Age', 'Occupation', 'Zip-code']
-users = pd.read_csv('./dataset/ml-1m/users.dat', sep='::', header=None,
+users = pd.read_csv('../dataset/ml-1m/users.dat', sep='::', header=None,
                     names=users_title, engine='python')
 movies_title = ['MovieID', 'Title', 'Genres']
-movies = pd.read_csv('./dataset/ml-1m/movies.dat', sep='::', header=None,
+movies = pd.read_csv('../dataset/ml-1m/movies.dat', sep='::', header=None,
                      names=movies_title, engine='python')
 ratings_title = ['UserID', 'MovieID', 'Rating', 'Timestamp']
-ratings = pd.read_csv('./dataset/ml-1m/ratings.dat', sep='::', header=None,
+ratings = pd.read_csv('../dataset/ml-1m/ratings.dat', sep='::', header=None,
                       names=ratings_title, engine='python')
-tags = pd.read_csv('./dataset/ml-20m/genome-tags.csv')
-tag_scores = pd.read_csv('./dataset/ml-20m/genome-scores.csv')
+tags = pd.read_csv('../dataset/ml-20m/genome-tags.csv')
+tag_scores = pd.read_csv('../dataset/ml-20m/genome-scores.csv')
 
 # 对tags、tag_scores的列重命名，使其标准化
 tags.rename(columns={'tagId': 'TagID', 'tag': 'Tag'}, inplace=True)
@@ -40,8 +40,8 @@ for i in all_genres:
 movies = movies.drop(['Genres'], axis=1)
 
 # 输出为csv
-users.to_csv('./dataset/ml-out/users.csv', index=False)
-movies.to_csv('./dataset/ml-out/movies.csv', index=False)
-ratings.to_csv('./dataset/ml-out/ratings.csv', index=False)
-tags.to_csv('./dataset/ml-out/tags.csv', index=False)
-tag_scores.to_csv('./dataset/ml-out/tag_scores.csv', index=False)
+users.to_csv('../dataset/ml-out/users.csv', index=False)
+movies.to_csv('../dataset/ml-out/movies.csv', index=False)
+ratings.to_csv('../dataset/ml-out/ratings.csv', index=False)
+tags.to_csv('../dataset/ml-out/tags.csv', index=False)
+tag_scores.to_csv('../dataset/ml-out/tag_scores.csv', index=False)

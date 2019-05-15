@@ -1,36 +1,30 @@
-'''
+"""
 Apriori算法
-'''
+"""
 
 import itertools
 
 
 def create_C_1(dataset):
-    '''
+    """
     生成候选1项集
 
-    输入：dataset：数据集：
-            列表，每一行为一个列表
-    输出：候选1项集：
-            列表，每一项为一个frozenset
-    '''
+    :param dataset: 数据集：列表，每一行为一个列表
+    :return: 候选1项集：列表，每一项为一个frozenset
+    """
     C_1 = set(itertools.chain(*dataset))
     return [frozenset([i]) for i in C_1]
 
 
 def scan_D(dataset, C_k, min_support):
-    '''
+    """
     计算项集支持度
 
-    输入：dataset     ：数据集：
-                          列表，每一行为一个列表；
-          C_k         ：候选k项集：
-                          列表，每一项为一个frozenset；
-          min_support ：最小支持度：
-                          浮点数，0~1之间
-    输出：满足最小支持度的频繁k项集：
-            字典，键为项集，值为支持度
-    '''
+    :param dataset:     数据集： 列表，每一行为一个列表
+    :param C_k:         候选k项集：列表，每一项为一个frozenset
+    :param min_support: 最小支持度：浮点数，0~1之间
+    :return: 满足最小支持度的频繁k项集：字典，键为项集，值为支持度
+    """
     support = {}
     for i in dataset:
         for j in C_k:
@@ -41,14 +35,12 @@ def scan_D(dataset, C_k, min_support):
 
 
 def apriori_gen(L_k):
-    '''
+    """
     使用频繁k项集生成候选k+1项集
 
-    输入：L_k：频繁k项集：
-            字典，键为项集，值为支持度
-    输出：候选k+1项集：
-            列表，每一项为一个frozenset
-    '''
+    :param L_k: 频繁k项集：字典，键为项集，值为支持度
+    :return: 候选k+1项集：列表，每一项为一个frozenset
+    """
     len_L_k = len(L_k)
     k = len(L_k[0])
     if len_L_k > 1 and k > 0:
@@ -59,16 +51,13 @@ def apriori_gen(L_k):
 
 
 def apriori(dataset, min_support=0.5):
-    '''
+    """
     Apriori算法，计算频繁项集
 
-    输入：dataset     ：数据集：
-                          列表，每一行为一个列表；
-          min_support ：最小支持度：
-                          浮点数，0~1之间，默认为0.5
-    输出：所有频繁项集
-            字典，键为项集，值为支持度
-    '''
+    :param dataset:     数据集：列表，每一行为一个列表
+    :param min_support: 最小支持度：浮点数，0~1之间，默认为0.5
+    :return: 所有频繁项集：字典，键为项集，值为支持度
+    """
     C_1 = create_C_1(dataset)
     L_1 = scan_D(dataset, C_1, min_support)
     L = [L_1]
@@ -88,13 +77,13 @@ def apriori(dataset, min_support=0.5):
 
 
 def rules_gen(iterable):
-    '''
+    """
     分拆频繁项集，生成左手、右手规则
 
-    输入：iterable：可迭代对象（如列表）
-    输出：所有可能出现的规则：
-            列表，由元组构成，每个元组由两个frozenset组成，分别代表条件和结果
-    '''
+    :param iterable: 可迭代对象（如列表）
+    :return: 所有可能出现的规则：
+               列表，由元组构成，每个元组由两个frozenset组成，分别代表条件和结果
+    """
     subset = []
     for i in range(1, len(iterable)):
         subset.extend(itertools.combinations(iterable, i))
@@ -103,22 +92,20 @@ def rules_gen(iterable):
 
 
 def arules(dataset, min_support=0.5):
-    '''
+    """
     对数据集使用Apriori算法计算频繁项集和候选规则，
-        并计算规则的支持度、置信度、提升度
+    并计算规则的支持度、置信度、提升度
 
-    输入：dataset     ：数据集：
-                          列表，每一行为一个列表；
-          min_support ：最小支持度：
-                          浮点数，0~1之间，默认为0.5
-    输出：频繁项集的候选规则，及其支持度、置信度和提升度：
-            列表，每一项为字典，有以下键值：
-                'LHS'：左手规则；
-                'RHS'：右手规则；
-                'support'：支持度；
-                'confidence'：置信度；
-                'lift'：提升度
-    '''
+    :param dataset:     数据集：列表，每一行为一个列表
+    :param min_support: 最小支持度：浮点数，0~1之间，默认为0.5
+    :return: 频繁项集的候选规则，及其支持度、置信度和提升度：
+                列表，每一项为字典，有以下键值：
+                    'LHS'：左手规则；
+                    'RHS'：右手规则；
+                    'support'：支持度；
+                    'confidence'：置信度；
+                    'lift'：提升度
+    """
     L = apriori(dataset, min_support)
     rules = []
     for Lk in L.keys():

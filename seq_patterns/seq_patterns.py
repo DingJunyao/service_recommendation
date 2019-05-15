@@ -1,26 +1,23 @@
 import itertools
 import sys
 import os
-try:
-    from seq_patterns.apriori import apriori
-except ImportError:
-    from apriori import apriori
+from seq_patterns.apriori import apriori
 
 
 def create_ls_1(dataset, min_support):
-    '''
-    找出序列模式中各序列的所有的频繁序列，
-        组成序列模式的频繁1序列和支持度，并为它们映射一个值，便于后续计算
+    """
+    找出序列模式中各序列的所有的频繁序列，组成序列模式的频繁1序列和支持度，
+    并为它们映射一个值，便于后续计算
 
-    输入：dataset     ：数据集：
-                          列表，每行为一个列表，表示序列（对应客户的购买记录）；
+    :param dataset:     数据集：
+                            列表，每行为一个列表，表示序列（对应客户购买记录）；
                             序列由列表组成（单次购买的商品）；
-          min_support ：最小支持度，0~1之间
-    输出：频繁1序列的映射表；
-            字典：键为frozen，表示频繁序列；值为映射的值
-          频繁1序列的支持度
-            字典：键为由映射值组成的元组；值为支持度
-    '''
+    :param min_support: 最小支持度，0~1之间
+    :return: - 频繁1序列的映射表；
+                字典：键为frozenset，表示频繁序列；值为映射的值
+             - 频繁1序列的支持度
+                字典：键为由映射值组成的元组；值为支持度
+    """
     n = len(dataset)
     flatten_set = list(itertools.chain(*dataset))
     flatten_n = len(flatten_set)
@@ -33,15 +30,13 @@ def create_ls_1(dataset, min_support):
 
 
 def seq_mapping(seq, mapping):
-    '''
+    """
     对每个序列进行映射
 
-    输入：seq     ：序列：
-                      列表：数据集中的某个序列；
-          mapping ：映射表：
-                      字典：create_Ls_1()生成的映射表
-    输出：映射后序列
-    '''
+    :param seq: 序列：列表，数据集中的某个序列
+    :param mapping: 映射表：字典，create_Ls_1()生成的映射表
+    :return: 映射后序列
+    """
     new_seq = []
     for i_set in seq:
         new_set = [v for k, v in mapping.items() if k <= set(i_set)]
@@ -51,14 +46,13 @@ def seq_mapping(seq, mapping):
 
 
 def transform(dataset, mapping):
-    '''
+    """
     使用映射值转换数据集
 
-    输入：dataset：数据集；
-          mapping：映射表：
-                      字典：create_Ls_1()生成的映射表
-    输出：转换后的数据集
-    '''
+    :param dataset: 数据集
+    :param mapping: 映射表：字典：create_ls_1()生成的映射表
+    :return: 转换后的数据集
+    """
     transform_ds = []
     for seq in dataset:
         new_seq = seq_mapping(seq, mapping)
@@ -68,12 +62,13 @@ def transform(dataset, mapping):
 
 
 def seq_gen(seq_a, seq_b):
-    '''
+    """
     通过两个频繁k序列生成候选k+1序列
 
-    输入：seq_a, seq_b：两个频繁k序列：列表
-    输出：候选k+1序列：列表
-    '''
+    :param seq_a: 频繁k序列a：列表
+    :param seq_b: 频繁k序列b：列表
+    :return: 候选k+1序列：列表
+    """
     new_a, new_b = seq_a.copy(), seq_b.copy()
     if seq_a[:-1] == seq_b[:-1]:
         new_a.append(seq_b[-1])
@@ -82,12 +77,12 @@ def seq_gen(seq_a, seq_b):
 
 
 def cs_gen(large_seq):
-    '''
+    """
     根据频繁k-序列生成所有候选k+1序列
 
-    输入：large_seq：频繁k序列：列表
-    输出：候选k+1序列：列表
-    '''
+    :param large_seq: 频繁k序列：列表
+    :return: 候选k+1序列：列表
+    """
     cs = []
     for seq_a, seq_b in itertools.combinations(large_seq, 2):
         new_seqs = seq_gen(seq_a, seq_b)
@@ -97,15 +92,13 @@ def cs_gen(large_seq):
 
 
 def is_subseq(seq, cus_seq):
-    '''
+    """
     判断候选序列是否是某序列的子序列（转换阶段）
 
-    输入：seq     ：要比较序列（候选序列）
-                      列表
-          cus_seq ：被比较序列（用户序列）
-                      列表
-    输出：布尔值，表示是否是子序列
-    '''
+    :param seq:     要比较序列（候选序列）：列表
+    :param cus_seq: 被比较序列（用户序列）：列表
+    :return: 布尔值，表示是否是子序列
+    """
     n_seq, n_cus_seq = len(seq), len(cus_seq)
     if n_seq > n_cus_seq:
         return False
@@ -121,15 +114,14 @@ def is_subseq(seq, cus_seq):
 
 
 def calc_support(transform_ds, cs, min_support):
-    '''
+    """
     计算每个候选序列的支持度，根据最小支持度筛选，产生频繁k序列
 
-    输入：transform_ds ：转换后数据集
-          cs           ：候选序列
-          min_support  ：最小支持度
-    输出：频繁序列
-          字典：键为频繁序列，值为支持度
-    '''
+    :param transform_ds: 转换后数据集
+    :param cs:           候选序列
+    :param min_support:  最小支持度
+    :return: 频繁序列：字典，键为频繁序列，值为支持度
+    """
     support_ls_k = {}
     n = len(transform_ds)
     if len(cs) >= 1:
@@ -142,15 +134,13 @@ def calc_support(transform_ds, cs, min_support):
 
 
 def is_subseq2(seq, cus_seq):
-    '''
+    """
     判断候选序列是否是某序列的子序列（最大化序列阶段）
 
-    输入：seq     ：要比较序列（候选序列）
-                      列表
-          cus_seq ：被比较序列（用户序列）
-                      列表
-    输出：布尔值，表示是否是子序列
-    '''
+    :param seq:     要比较序列（候选序列）：列表
+    :param cus_seq: 被比较序列（用户序列）
+    :return: 布尔值，表示是否是子序列
+    """
     n_seq, n_cus_seq = len(seq), len(cus_seq)
     if n_seq > n_cus_seq:
         return False
@@ -166,15 +156,13 @@ def is_subseq2(seq, cus_seq):
 
 
 def not_proper_subseq(seq, cus_seq):
-    '''
+    """
     若候选序列不是某个序列的非空真子序列，返回True
 
-    输入：seq     ：要比较序列（候选序列）
-                      列表
-          cus_seq ：被比较序列（用户序列）
-                      列表
-    输出：布尔值，表示是否不是非空真子序列
-    '''
+    :param seq: 要比较序列（候选序列）：列表
+    :param cus_seq: 被比较序列（用户序列）：列表
+    :return: 布尔值，表示是否不是非空真子序列
+    """
     if seq == cus_seq:
         return True
     else:
@@ -182,13 +170,13 @@ def not_proper_subseq(seq, cus_seq):
 
 
 def max_ls(ls, support_ls):
-    '''
+    """
     将候选序列中最大化序列保留下来
 
-    输入：ls         ：频繁序列
-          support_ls ：频繁序列的支持度
-    输出：ls, support_ls， 但是保留了最大化的序列
-    '''
+    :param ls:         频繁序列
+    :param support_ls: 频繁序列的支持度
+    :return: ls, support_ls， 但是保留了最大化的序列
+    """
     ls_cp = ls.copy()
     len_l, len_c = len(ls), len(ls_cp)
     while len_c > 1 and len_l > 1:
@@ -202,17 +190,17 @@ def max_ls(ls, support_ls):
 
 
 def seq_patterns(dataset, min_support=0.4):
-    '''
+    """
     使用Apriori算法寻找序列模式
 
-    输入：dataset     ：数据集：
+    :param dataset:     数据集：
                           列表，每行为一个列表，表示序列（对应客户的购买记录）；
-                            序列由列表组成（单次购买的商品）；
-          min_support ：最小支持度，0~1之间，默认为0.4
-    输出：列表，由元组组成，元组有两项，分别为：
-            序列：元组，由子序列组成，子序列为frozenset；
-            序列模式的支持度
-    '''
+                            序列由列表组成（单次购买的商品）
+    :param min_support: 最小支持度，0~1之间，默认为0.4
+    :return: 列表，由元组组成，元组有两项，分别为：
+               序列：元组，由子序列组成，子序列为frozenset；
+                 序列模式的支持度
+    """
     # 频繁项集阶段
     mapping, support_ls_1 = create_ls_1(dataset, min_support)
     ls_1 = [list(k) for k in support_ls_1]

@@ -1,8 +1,5 @@
-import numpy as np
 import pandas as pd
 import random
-import os
-os.chdir('D:/service_recommendation/data_prepare')
 
 
 s_rate = pd.read_csv('../temp/s_rate.csv')

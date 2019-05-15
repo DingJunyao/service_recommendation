@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 """
-Created on Sat May  4 16:32:42 2019
+Author: DingJunyao
 
-@author: DingJunyao
+Time：16:32:42 2019
 """
 
 import pandas as pd
@@ -50,7 +49,7 @@ all_genres = [
     'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'War', 'Western'
 ]
 
-ml_ds_path = './dataset/ml-out-reduce'
+ml_ds_path = '../dataset/ml-out-reduce'
 
 # 加载数据集
 movies = pd.read_csv(ml_ds_path + '/movies.csv')
@@ -108,7 +107,7 @@ s_similar = pd.DataFrame(columns=ts.index, index=ts.index, dtype=np.float)
 s_similar.index.name = 'MovieID'
 for ii, i in enumerate(s_similar.index):
     s_similar.loc[i, i] = 1
-    for j in s_similar.index[ii:]:
+    for j in s_similar.index[ii + 1:]:
         s_similar.loc[i, j] = cos_similarity(ts.loc[i], ts.loc[j])
         s_similar.loc[j, i] = s_similar.loc[i, j]
 
@@ -121,19 +120,18 @@ s_rate = pd.DataFrame(columns=users.UserID,
                       dtype=np.float)
 # w_rate = pd.DataFrame(columns=users.UserID, index=movies.MovieID,
 #                       dtype=np.float)
-time_effect_rate = pd.DataFrame(columns=users.UserID,
+rate_time = pd.DataFrame(columns=users.UserID,
                                 index=movies.MovieID,
-                                dtype=np.float)
-u_buy = pd.DataFrame(columns=movies.MovieID,
-                     index=users.UserID,
-                     dtype=np.float)
+                                dtype=np.int)
+# u_buy = pd.DataFrame(columns=movies.MovieID,
+#                      index=users.UserID,
+#                      dtype=np.float)
 # u_search = pd.DataFrame(columns=movies.MovieID, index=users.UserID,
 #                         dtype=np.float)
 # u_browse = pd.DataFrame(columns=movies.MovieID, index=users.UserID,
 #                         dtype=np.float)
 
-# 计算评价权重
-time_effect_lambda = 0.01
+
 # ratings = pd.merge(ratings,
 #                    weight_alter(
 #                        ratings.groupby('UserID').count()['MovieID'] /
@@ -144,22 +142,23 @@ time_effect_lambda = 0.01
 #     'MovieID_y': 'Count'
 # },
 #                inplace=True)
-ratings['TimeEffect'] = time_effect(ratings['Delta_t'], time_effect_lambda)
 # for i in movies['MovieID']:
 #     ratings.loc[ratings['MovieID'] == i, 'Weight'] = weight_alter(
 #         ratings['TimeEffect'] *ratings.loc[ratings['MovieID'] == i, 'Count'])
 
-# 评价、时间效应、购买矩阵
-for i in users.UserID:
-    s_rate[i] = ratings[ratings.UserID == i][['MovieID',
-                                              'Rating']].set_index('MovieID')
-    # w_rate[i]= ratings[ratings.UserID == i][['MovieID', 'Weight']].set_index(
-    #        'MovieID')
-    time_effect_rate[i] = ratings[ratings.UserID == i][[
-        'MovieID', 'TimeEffect'
-    ]].set_index('MovieID')
-    # u_buy[i] = ratings[ratings.UserID == i][['MovieID', 'TimeEffect'
-    #                                          ]].set_index('MovieID')
+# 评价、时间、购买矩阵
+s_rate = s_rate.fillna(0) + ratings.pivot(index='MovieID', columns='UserID', values='Rating')
+rate_time = rate_time.fillna(0) + ratings.pivot(index='MovieID', columns='UserID', values='Timestamp')
+# for i in users.UserID:
+#     s_rate[i] = ratings[ratings.UserID == i][['MovieID',
+#                                               'Rating']].set_index('MovieID')
+#     w_rate[i]= ratings[ratings.UserID == i][['MovieID', 'Weight']].set_index(
+#            'MovieID')
+#     rate_time[i] = ratings[ratings.UserID == i][[
+#         'MovieID', 'Timestamp'
+#     ]].set_index('MovieID')
+#     u_buy[i] = ratings[ratings.UserID == i][['MovieID', 'TimeEffect'
+#                                              ]].set_index('MovieID')
 # 使用量矩阵
 u_usage = s_rate.mask(s_rate >= 0, 0.1).T
 
@@ -171,15 +170,15 @@ u_similar = pd.DataFrame(columns=users.index,
 u_similar.index.name = 'UserID'
 for ii, i in enumerate(u_similar.index):
     u_similar.loc[i, i] = 1
-    for j in u_similar.index[ii:]:
+    for j in u_similar.index[ii + 1:]:
         u_similar.loc[i, j] = cos_similarity(users.loc[i], users.loc[j])
         u_similar.loc[j, i] = u_similar.loc[i, j]
 
 # 导出矩阵
-s_similar.to_csv('./temp/s_similar.csv')
-s_rate.to_csv('./temp/s_rate.csv')
-# w_rate.to_csv('./temp/w_rate.csv')
-time_effect_rate.to_csv('./temp/time_effect_rate.csv')
-# u_buy.to_csv('./temp/u_buy.csv')
-u_usage.to_csv('./temp/u_usage.csv')
-u_similar.to_csv('./temp/u_similar.csv')
+s_similar.to_csv('../temp/s_similar.csv')
+s_rate.to_csv('../temp/s_rate.csv')
+# w_rate.to_csv('../temp/w_rate.csv')
+rate_time.to_csv('../temp/rate_time.csv')
+# u_buy.to_csv('../temp/u_buy.csv')
+u_usage.to_csv('../temp/u_usage.csv')
+u_similar.to_csv('../temp/u_similar.csv')
