@@ -1,25 +1,29 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat May  4 00:20:59 2019
+数据集的整合和标准化
 
-@author: DingJunyao
+Author: DingJunyao
+Date：2019-05-17 18:23
 """
 
 import pandas as pd
 
+ML_1M_PATH = '../dataset/ml-1m'
+ML_20M_PATH = '../dataset/ml-20m'
+OUT_PATH = '../dataset/ml-out'
 
 # 加载所有数据集
 users_title = ['UserID', 'Gender', 'Age', 'Occupation', 'Zip-code']
-users = pd.read_csv('../dataset/ml-1m/users.dat', sep='::', header=None,
+users = pd.read_csv(ML_1M_PATH + '/users.dat', sep='::', header=None,
                     names=users_title, engine='python')
 movies_title = ['MovieID', 'Title', 'Genres']
-movies = pd.read_csv('../dataset/ml-1m/movies.dat', sep='::', header=None,
+movies = pd.read_csv(ML_1M_PATH + '/movies.dat', sep='::', header=None,
                      names=movies_title, engine='python')
 ratings_title = ['UserID', 'MovieID', 'Rating', 'Timestamp']
-ratings = pd.read_csv('../dataset/ml-1m/ratings.dat', sep='::', header=None,
+ratings = pd.read_csv(ML_1M_PATH + '/ratings.dat', sep='::', header=None,
                       names=ratings_title, engine='python')
-tags = pd.read_csv('../dataset/ml-20m/genome-tags.csv')
-tag_scores = pd.read_csv('../dataset/ml-20m/genome-scores.csv')
+tags = pd.read_csv(ML_20M_PATH + '/genome-tags.csv')
+tag_scores = pd.read_csv(ML_20M_PATH + '/genome-scores.csv')
 
 # 对tags、tag_scores的列重命名，使其标准化
 tags.rename(columns={'tagId': 'TagID', 'tag': 'Tag'}, inplace=True)
@@ -40,8 +44,8 @@ for i in all_genres:
 movies = movies.drop(['Genres'], axis=1)
 
 # 输出为csv
-users.to_csv('../dataset/ml-out/users.csv', index=False)
-movies.to_csv('../dataset/ml-out/movies.csv', index=False)
-ratings.to_csv('../dataset/ml-out/ratings.csv', index=False)
-tags.to_csv('../dataset/ml-out/tags.csv', index=False)
-tag_scores.to_csv('../dataset/ml-out/tag_scores.csv', index=False)
+users.to_csv(OUT_PATH + '/users.csv', index=False)
+movies.to_csv(OUT_PATH + '/movies.csv', index=False)
+ratings.to_csv(OUT_PATH + '/ratings.csv', index=False)
+tags.to_csv(OUT_PATH + '/tags.csv', index=False)
+tag_scores.to_csv(OUT_PATH + '/tag_scores.csv', index=False)

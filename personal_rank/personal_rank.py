@@ -8,6 +8,7 @@ Date: 2019-05-13 18:22
 
 import numpy as np
 import pandas as pd
+import time
 
 
 def s_rate_mean(s_rate):
@@ -58,7 +59,7 @@ def graph_gen(s_rate, rate_limit=4):
             if s_rate.loc[i, j] >= rate_limit:
                 graph[ii + user_num][ji] = 1
                 graph[ji][ii + user_num] = 1
-            print('\r%s\t%s' % (i, j), end='', flush=True)
+            # print('\r%s\t%s' % (i, j), end='', flush=True)
     return graph, vertex
 
 
@@ -84,22 +85,29 @@ def personal_rank_user(graph, vertex, u, num=10, alpha=0.8):
 
 
 if __name__ == '__main__':
-    s_rate = pd.read_csv('../temp_ori/s_rate.csv')
+    s_rate = pd.read_csv('../temp/s_rate.csv')
     s_rate = s_rate.set_index('MovieID')
     s_rate.rename(columns=int, inplace=True)
     s_rate_mean = s_rate_mean(s_rate)
+    model_start = time.time()  # 打点计时
     g, v = graph_gen(s_rate_mean, 0)
+    model_end = time.time()  # 打点计时
     print(personal_rank_user(g, v, 4, 10, 0.8))
+    print('Model time: %s' % (model_end - model_start))  # 打点计时
 
-    s_similar = pd.read_csv('../temp_ori/s_similar.csv')
+    s_similar = pd.read_csv('../temp/s_similar.csv')
     s_similar = s_similar.set_index('MovieID')
     s_similar.rename(columns=int, inplace=True)
 
     # 覆盖率 Coverage & 多样性 Diversity
     ru_set = set()
     sum_diversity_u = 0
+    rec_time_sum = 0  # 打点计时
     for u in s_rate.columns:
-        recommend_list_with_score = personal_rank_user(g, v, u)
+        rec_start = time.time()  # 打点计时
+        recommend_list_with_score = personal_rank(g, v, u)
+        # recommend_list_with_score = personal_rank_user(g, v, u)
+        rec_end = time.time()  # 打点计时
         recommend_list = [i[0] for i in recommend_list_with_score]
         sum_diversity_u += 1 - (s_similar.loc[
                                     recommend_list, recommend_list].sum().sum() - len(
@@ -107,11 +115,14 @@ if __name__ == '__main__':
                 len(recommend_list) - 1))
         for i in recommend_list:
             ru_set.add(i)
+        rec_time_sum += rec_end - rec_start  # 打点计时
         print('\r%s' % (u), end='', flush=True)
     coverage = len(ru_set) / len(s_rate.index)
     diversity = sum_diversity_u / len(s_rate.columns)
+    rec_time = rec_time_sum / len(s_rate.columns)  # 打点计时
     print('Coverage: %s' % coverage)
     print('Diversity: %s' % diversity)
+    print('Time: %s' % rec_time)  # 打点计时
     # on 1/10 dataset
     # Coverage: 0.34536082474226804
     # Diversity: -0.2581819489140455

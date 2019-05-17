@@ -122,10 +122,13 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-temp_ori/
+temp/
+temp-reduce/
+bak/
 dataset/
 model*
 s_s_*
 temp.png
 test.py
-.idea/
+.idea
+temp_ori/
