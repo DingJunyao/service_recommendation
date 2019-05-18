@@ -104,6 +104,13 @@ rate_time = rate_time.fillna(0) + ratings.pivot(index='MovieID',
                                                 values='Timestamp')
 
 # 分开新旧评分
+ratings_new = ratings.copy()
+ratings_old = ratings.copy()
+for u in users.UserID:
+    ratings_new[(ratings_new['UserID'] == u) & (ratings_new['Timestamp'] < ratings_new[ratings_new['UserID'] == u]['Timestamp'].quantile(0.8))] = np.nan
+    ratings_old[(ratings_old['UserID'] == u) & (ratings_old['Timestamp'] > ratings_old[ratings_old['UserID'] == u]['Timestamp'].quantile(0.8))] = np.nan
+ratings_new.dropna(inplace=True)
+ratings_old.dropna(inplace=True)
 s_rate_new = s_rate.copy()
 s_rate_new[(rate_time < rate_time.quantile(0.8))] = np.nan
 s_rate_old = s_rate.copy()
@@ -122,6 +129,8 @@ prep_end = time.time()  # 打点计时
 
 # 导出矩阵
 s_similar.to_csv(OUT_PATH + '/s_similar.csv')
+ratings_new.to_csv(ML_DS_PATH + '/ratings_new.csv')
+ratings_old.to_csv(ML_DS_PATH + '/ratings_old.csv')
 s_rate.to_csv(OUT_PATH + '/s_rate.csv')
 s_rate_new.to_csv(OUT_PATH + '/s_rate_new.csv')
 s_rate_old.to_csv(OUT_PATH + '/s_rate_old.csv')

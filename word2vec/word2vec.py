@@ -29,13 +29,12 @@ def recommend_wv_series(series, model, num=10):
     return recommend_list
 
 
-def recommend_wv(s_rate, rate_time, model, uid, num=10, time_limit=0.2):
+def recommend_wv(ratings, model, uid, num=10, time_limit=0.2):
     """
     给定评价、评价时间和模型，根据用户最近评价的电影，为其推荐若干关联电影
     是对recommend_wv_series的封装
 
-    :param s_rate:     评分矩阵
-    :param rate_time:  评分时间矩阵
+    :param ratings:    评分表
     :param model:      训练过的Word2Vec模型
     :param uid:        用户ID
     :param num:        项数，默认为10
@@ -43,32 +42,33 @@ def recommend_wv(s_rate, rate_time, model, uid, num=10, time_limit=0.2):
     :return: 推荐列表
     """
     time_limit_reverse = 1 - time_limit
-    recent_items = s_rate[(rate_time > rate_time.quantile(time_limit_reverse))][
-        uid]
-    recent_items_list = list(recent_items.values)
+    ratings_u = ratings[(ratings['UserID'] == uid)]
+    recent_items = ratings_u[(
+                ratings_u['Timestamp'] > ratings_u['Timestamp'].quantile(
+            time_limit_reverse))]['MovieID']
+    recent_items_list = [str(int(i)) for i in recent_items]
     return recommend_wv_series(recent_items_list, model, num)
 
 
-
 if __name__ == '__main__':
-    MATRIX_PATH = '../temp-sample'
+    ML_DS_PATH = '../dataset/ml-out'
+    MATRIX_PATH = '../temp'
+
+    ratings_old = pd.read_csv(ML_DS_PATH + '/ratings_old.csv')
+
     s_rate_old = pd.read_csv(MATRIX_PATH + '/s_rate_old.csv')
     s_rate_old = s_rate_old.set_index('MovieID')
     s_rate_old.rename(columns=int, inplace=True)
-
-    rate_time_old = pd.read_csv(MATRIX_PATH + '/rate_time_old.csv')
-    rate_time_old = rate_time_old.set_index('MovieID')
-    rate_time_old.rename(columns=int, inplace=True)
 
     with open(MATRIX_PATH + '/cluster_old.pickle', 'rb') as f:
         cluster = pickle.load(f)
 
     cluster = [[str(j) for j in i] for i in cluster]
     model_start = time.time()  # 打点计时
-    model = gensim.models.Word2Vec(cluster, workers=10)
+    model = gensim.models.Word2Vec(cluster, min_count=10, workers = 10)
     # model = gensim.models.Word2Vec.load('../temp_ori/w2cm.model')
     model_end = time.time()  # 打点计时
-    recommend_list_example = recommend_wv(s_rate_old, rate_time_old, model, 5)
+    recommend_list_example = recommend_wv(ratings_old, model, 5)
     print(recommend_list_example)
     print('Modeling Time: %s' % (model_end - model_start))
     model.save(MATRIX_PATH + '/w2cm.model')
@@ -92,8 +92,7 @@ if __name__ == '__main__':
     for u in s_rate_old.columns:
         select_set = set(s_rate_new[~s_rate_new[u].isnull()][u].index)
         rec_start = time.time()  # 打点计时
-        recommend_list_with_score = recommend_wv(s_rate_old, rate_time_old,
-                                                 model, u)
+        recommend_list_with_score = recommend_wv(ratings_old, model, u)
         rec_end = time.time()  # 打点计时
         recommend_list = [i[0] for i in recommend_list_with_score]
         recommend_set = set(recommend_list)
@@ -112,6 +111,7 @@ if __name__ == '__main__':
         for i in recommend_list:
             ru_set.add(i)
         rec_time_sum += rec_end - rec_start  # 打点计时
+        print('\r%s' % u, end='', flush=True)
     coverage = len(ru_set) / len(s_rate_old.index)
     diversity = sum_diversity_u / (len(s_rate_old.columns) - user_minus)
     rec_time = rec_time_sum / len(s_rate_old.columns)  # 打点计时
@@ -125,39 +125,39 @@ if __name__ == '__main__':
     print('Coverage: %s' % coverage)
     print('Diversity: %s' % diversity)
 
-    # # 覆盖率 Coverage & 多样性 Diversity
-    # s_rate_new = pd.read_csv(MATRIX_PATH + '/s_rate_new.csv')
-    # s_rate_new = s_rate_new.set_index('MovieID')
-    # s_rate_new.rename(columns=int, inplace=True)
-    #
-    # s_similar = pd.read_csv(MATRIX_PATH + '/s_similar.csv')
-    # s_similar = s_similar.set_index('MovieID')
-    # s_similar.rename(columns=int, inplace=True)
-    #
-    # ru_set = set()
-    # user_minus = 0
-    # sum_diversity_u = 0
-    # rec_time_sum = 0
-    # for u in s_rate.columns:
-    #     rec_single_start = time.time()  # 打点计时
-    #     recommend_list_with_score = recommend_wv(ratings, u, model)
-    #     rec_single_end = time.time()  # 打点计时
-    #     recommend_list = [i[0] for i in recommend_list_with_score]
-    #     if recommend_list:
-    #         sum_diversity_u += 1 - (s_similar.loc[
-    #                                     recommend_list, recommend_list
-    #                                 ].sum().sum() - len(
-    #             recommend_list)) / (0.5 * len(recommend_list) * (
-    #                 len(recommend_list) - 1))
-    #         for i in recommend_list:
-    #             ru_set.add(i)
-    #     else:
-    #         user_minus += 1
-    #     rec_time_sum += rec_single_end - rec_single_start
-    #     print('\r%s' % u, end='', flush=True)
-    # coverage = len(ru_set) / len(s_rate.index)
-    # diversity = sum_diversity_u / (len(s_rate.columns) - user_minus)
-    # rec_time = rec_time_sum / len(s_rate.columns)
-    # print('Coverage: %s' % coverage)
-    # print('Diversity: %s' % diversity)
-    # print('Recommend Average Time: %s' % rec_time)
+# # 覆盖率 Coverage & 多样性 Diversity
+# s_rate_new = pd.read_csv(MATRIX_PATH + '/s_rate_new.csv')
+# s_rate_new = s_rate_new.set_index('MovieID')
+# s_rate_new.rename(columns=int, inplace=True)
+#
+# s_similar = pd.read_csv(MATRIX_PATH + '/s_similar.csv')
+# s_similar = s_similar.set_index('MovieID')
+# s_similar.rename(columns=int, inplace=True)
+#
+# ru_set = set()
+# user_minus = 0
+# sum_diversity_u = 0
+# rec_time_sum = 0
+# for u in s_rate.columns:
+#     rec_single_start = time.time()  # 打点计时
+#     recommend_list_with_score = recommend_wv(ratings, u, model)
+#     rec_single_end = time.time()  # 打点计时
+#     recommend_list = [i[0] for i in recommend_list_with_score]
+#     if recommend_list:
+#         sum_diversity_u += 1 - (s_similar.loc[
+#                                     recommend_list, recommend_list
+#                                 ].sum().sum() - len(
+#             recommend_list)) / (0.5 * len(recommend_list) * (
+#                 len(recommend_list) - 1))
+#         for i in recommend_list:
+#             ru_set.add(i)
+#     else:
+#         user_minus += 1
+#     rec_time_sum += rec_single_end - rec_single_start
+#     print('\r%s' % u, end='', flush=True)
+# coverage = len(ru_set) / len(s_rate.index)
+# diversity = sum_diversity_u / (len(s_rate.columns) - user_minus)
+# rec_time = rec_time_sum / len(s_rate.columns)
+# print('Coverage: %s' % coverage)
+# print('Diversity: %s' % diversity)
+# print('Recommend Average Time: %s' % rec_time)
