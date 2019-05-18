@@ -48,48 +48,48 @@ def matrix_prepare(s_rate_equalized, energy_ratio=0.8):
     return s_rate_predict
 
 
-def recommend_svd(s_rate_mean, s_rate_predict, u, num=10):
+def recommend_svd(s_rate_equalizated, s_rate_predict, u, num=10):
     """
     生成推荐列表
 
-    :param s_rate_mean:    平均化后的用户评分矩阵
-    :param s_rate_predict: 预测用户评分矩阵
-    :param u:              用户ID：整数
-    :param num:            列表内最大项数：整数，默认为10
+    :param s_rate_equalizated: 平均化后的用户评分矩阵
+    :param s_rate_predict:     预测用户评分矩阵
+    :param u:                  用户ID：整数
+    :param num:                列表内最大项数：整数，默认为10
     :return: 推荐列表：列表，项为元组，元组内项分别为项目ID、项目的评分
     """
     # 选取原评分矩阵中未评分的，且预测值在平均评分及以上的项目
-    r_1 = s_rate_predict.loc[s_rate_mean[u].isnull(), u][
+    r_1 = s_rate_predict.loc[s_rate_equalizated[u].isnull(), u][
         s_rate_predict[u] >= 0].sort_values(ascending=False)
     rec_movies = [([i, r_1[i]]) for i in r_1[:num].index]
     return rec_movies
 
 
-def recommend_svd_s(s_rate_mean, s_rate_predict, s_similar, u, num=10, similar_limit=0.8):
-    """
-    生成推荐列表，排除近似项目
-
-    :param s_rate_mean:    平均化后的用户评分矩阵
-    :param s_rate_predict: 预测用户评分矩阵
-    :param s_similar:      项目相似度矩阵
-    :param u:              用户ID：整数
-    :param num:            列表内最大项数：整数，默认为10
-    :param similar_limit:  相似度的最大值：浮点数，默认为0.8
-    :return: 推荐列表：列表，项为元组，元组内项分别为项目ID、项目的评分
-    """
-    # 选取原评分矩阵中未评分的，且预测值在平均评分及以上的项目
-    r_1 = s_rate_predict.loc[s_rate_mean[u].isnull(), u][
-        s_rate_predict[u] >= 0].sort_values(ascending=False)
-    r_2 = r_1
-    # 选取原评分矩阵中评分的，且预测值在平均评分及以上的项目
-    r_11 = s_rate_predict.loc[~s_rate_mean[u].isnull(), u][
-        s_rate_predict[u] >= 0].sort_values(ascending=False)
-    # 筛选相对于已评分项目，相似度低的项目
-    for j in r_11.index:
-        s_s_1 = s_similar.loc[s_similar.loc[j] < similar_limit, j]
-        r_2 = r_2[r_2.index & s_s_1.index]
-    rec_movies = [([i, r_1[i]]) for i in r_1[r_2.index & r_1.index][:num].index]
-    return rec_movies
+# def recommend_svd_s(s_rate_mean, s_rate_predict, s_similar, u, num=10, similar_limit=0.8):
+#     """
+#     生成推荐列表，排除近似项目
+#
+#     :param s_rate_mean:    平均化后的用户评分矩阵
+#     :param s_rate_predict: 预测用户评分矩阵
+#     :param s_similar:      项目相似度矩阵
+#     :param u:              用户ID：整数
+#     :param num:            列表内最大项数：整数，默认为10
+#     :param similar_limit:  相似度的最大值：浮点数，默认为0.8
+#     :return: 推荐列表：列表，项为元组，元组内项分别为项目ID、项目的评分
+#     """
+#     # 选取原评分矩阵中未评分的，且预测值在平均评分及以上的项目
+#     r_1 = s_rate_predict.loc[s_rate_mean[u].isnull(), u][
+#         s_rate_predict[u] >= 0].sort_values(ascending=False)
+#     r_2 = r_1
+#     # 选取原评分矩阵中评分的，且预测值在平均评分及以上的项目
+#     r_11 = s_rate_predict.loc[~s_rate_mean[u].isnull(), u][
+#         s_rate_predict[u] >= 0].sort_values(ascending=False)
+#     # 筛选相对于已评分项目，相似度低的项目
+#     for j in r_11.index:
+#         s_s_1 = s_similar.loc[s_similar.loc[j] < similar_limit, j]
+#         r_2 = r_2[r_2.index & s_s_1.index]
+#     rec_movies = [([i, r_1[i]]) for i in r_1[r_2.index & r_1.index][:num].index]
+#     return rec_movies
 
 
 # def recommend_svd_time(s_rate_mean, s_rate_predict, s_similar, time_effect_rate, u, num=10,

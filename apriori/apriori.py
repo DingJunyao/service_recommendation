@@ -26,7 +26,7 @@ def recommend_apriori_series(series, association_rules, num=10):
     :return: 推荐列表：每一项为元组，包括电影ID和置信度
     """
     if not series:
-        print('No series')
+        # print('No series')
         return []
     recommend_list = []
     for i in association_rules.itertuples():
@@ -43,7 +43,7 @@ def recommend_apriori_series(series, association_rules, num=10):
     if recommend_list_out:
         return recommend_list_out[:num]
     else:
-        print('No match')
+        # print('No match')
         return []
 
 
@@ -87,7 +87,7 @@ if __name__ == '__main__':
     te = TransactionEncoder()
     te_ary = te.fit(cluster).transform(cluster)
     df = pd.DataFrame(te_ary, columns=te.columns_)
-    frequent_itemsets = apriori(df, min_support=0.08, use_colnames=True)
+    frequent_itemsets = apriori(df, min_support=0.09, use_colnames=True)
     ar = association_rules(frequent_itemsets, metric="confidence",
                            min_threshold=0.2)
     model_end = time.time()  # 打点计时
