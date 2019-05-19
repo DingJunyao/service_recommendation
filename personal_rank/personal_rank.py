@@ -66,7 +66,7 @@ def matrix_prepare(s_rate, rate_limit=0, alpha=0.8):
     :param s_rate:     用户评分矩阵
     :param rate_limit: 评分不小于该值，才考虑该联系，默认值为0
     :param alpha:      节点上游走到下一个节点的概率，一般在0.6-0.8，默认为0.8
-    :return: Personal Rank排序矩阵
+    :return: PersonalRank排序矩阵
              坐标轴上的值的名称
     """
     graph, vertex = graph_gen(s_rate, rate_limit)
@@ -77,11 +77,11 @@ def matrix_prepare(s_rate, rate_limit=0, alpha=0.8):
 
 def scores_prepare(r_all, vertex):
     """
-    Personal Rank排序表准备
+    PersonalRank排序表准备
 
-    :param r_all:  Personal Rank排序矩阵
+    :param r_all:  PersonalRank排序矩阵
     :param vertex: 坐标轴上的值的名称
-    :return: Personal Rank排序表
+    :return: PersonalRank排序表
     """
     scores = pd.DataFrame(r_all, index=vertex, columns=vertex)
     scores = scores[scores.index.str.startswith('U_')]
@@ -113,11 +113,10 @@ if __name__ == '__main__':
     s_rate_old = s_rate_old.set_index('MovieID')
     s_rate_old.rename(columns=int, inplace=True)
 
-    s_rate_old_equalizated, s_rate_old_mean = s_rate_equalization(s_rate_old)
-
+    s_rate_old_equalized, s_rate_old_mean = s_rate_equalization(s_rate_old)
 
     model_start = time.time()  # 打点计时
-    r, v = matrix_prepare(s_rate_old_equalizated, 0)
+    r, v = matrix_prepare(s_rate_old_equalized)
     scores = scores_prepare(r, v)
     model_end = time.time()  # 打点计时
     recommend_list_example = personal_rank(scores, 5)
@@ -175,3 +174,57 @@ if __name__ == '__main__':
     print('F-Measure: %s' % f_measure)
     print('Coverage: %s' % coverage)
     print('Diversity: %s' % diversity)
+
+
+
+# # 准确率 Precision & 召回率 Recall & 覆盖率 Coverage & 多样性 Diversity
+#     s_rate_new = pd.read_csv(MATRIX_PATH + '/s_rate_new.csv')
+#     s_rate_new = s_rate_new.set_index('MovieID')
+#     s_rate_new.rename(columns=int, inplace=True)
+#
+#     s_similar = pd.read_csv(MATRIX_PATH + '/s_similar.csv')
+#     s_similar = s_similar.set_index('MovieID')
+#     s_similar.rename(columns=int, inplace=True)
+#
+#     r_and_s_sum = 0
+#     r_sum = 0
+#     s_sum = 0
+#     ru_set = set()
+#     sum_diversity_u = 0
+#     user_minus = 0
+#     rec_time_sum = 0  # 打点计时
+#     for u in s_rate_old.columns:
+#         print('\r%s' % u, end='', flush=True)
+#         select_set = set(s_rate_new[~s_rate_new[u].isnull()][u].index)
+#         rec_start = time.time()  # 打点计时
+#         recommend_list_with_score = personal_rank(scores, u)
+#         rec_end = time.time()  # 打点计时
+#         recommend_list = [i[0] for i in recommend_list_with_score]
+#         recommend_set = set(recommend_list)
+#         r_and_s_sum += len(recommend_set & select_set)
+#         r_sum += len(recommend_set)
+#         s_sum += len(select_set)
+#         if len(recommend_list) > 1:
+#             sum_diversity_u += 1 - (
+#                     s_similar.loc[
+#                         recommend_list, recommend_list
+#                     ].sum().sum() - len(recommend_list)) / (
+#                                        0.5 * len(recommend_list) * (
+#                                            len(recommend_list) - 1))
+#         else:
+#             user_minus += 1
+#         for i in recommend_list:
+#             ru_set.add(i)
+#         rec_time_sum += rec_end - rec_start  # 打点计时
+#     coverage = len(ru_set) / len(s_rate_old.index)
+#     diversity = sum_diversity_u / (len(s_rate_old.columns) - user_minus)
+#     rec_time = rec_time_sum / len(s_rate_old.columns)  # 打点计时
+#     precision = r_and_s_sum / r_sum
+#     recall = r_and_s_sum / s_sum
+#     f_measure = (2 * precision * recall) / (precision + recall)
+#     print('Average Recommend Time: %s' % rec_time)  # 打点计时
+#     print('Precision: %s' % precision)
+#     print('Recall: %s' % recall)
+#     print('F-Measure: %s' % f_measure)
+#     print('Coverage: %s' % coverage)
+#     print('Diversity: %s' % diversity)
