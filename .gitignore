@@ -123,7 +123,7 @@ dmypy.json
 .pyre/
 
 temp/
-temp-reduce/
+temp-sample/
 bak/
 dataset/
 model*
