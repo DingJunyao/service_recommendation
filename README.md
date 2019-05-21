@@ -12,6 +12,7 @@
 - pandas
 - scikit-learn（矩阵准备、Mean Shift算法需要使用）
 - mlxtend（Apriori算法需要使用）
+- gensim（Word2Vec算法需要使用）
 
 本仓库中的代码使用MovieLens的1m和20m数据集，并拼接成所需数据集。由于MovieLens的提供方不允许第三方再发布数据集，故请到[MovieLens数据集页面][1]自行下载，并按以下步骤拼接：
 
