@@ -37,10 +37,12 @@ def matrix_prepare(s_rate_equalized, energy_ratio=0.8):
             k = i
             break
     NewData = U[:, :k] * np.mat(np.eye(k) * Sigma[:k]) * VT[:k, :]
-    ND_DF = pd.DataFrame(NewData, index=s_rate_equalized.index, columns=s_rate_equalized.columns)
+    ND_DF = pd.DataFrame(NewData, index=s_rate_equalized.index,
+                         columns=s_rate_equalized.columns)
     # 将原矩阵评分添加进去
     # s_rate_predict = (
-    #         s_rate_equalized.fillna(0) + ND_DF[s_rate_equalized.isnull()].fillna(0))
+    #         s_rate_equalized.fillna(0) + ND_DF[
+    #             s_rate_equalized.isnull()].fillna(0))
     # 如果只看近似值的话就使用这个
     s_rate_predict = ND_DF
     return s_rate_predict
@@ -64,7 +66,7 @@ def recommend_svd(s_rate_equalized, s_rate_predict, u, num=10):
 
 
 if __name__ == '__main__':
-    # ENERGY_RATIO = 0.8
+    ENERGY_RATIO = 0.8
     RECOMMEND_NUM = 10
 
     ML_DS_PATH = '../dataset/ml-out-sample'
@@ -73,158 +75,75 @@ if __name__ == '__main__':
     s_rate_old = pd.read_csv(MATRIX_PATH + '/s_rate_old.csv')
     s_rate_old = s_rate_old.set_index('MovieID')
     s_rate_old.rename(columns=int, inplace=True)
-
     s_similar = pd.read_csv(MATRIX_PATH + '/s_similar.csv')
     s_similar = s_similar.set_index('MovieID')
     s_similar.rename(columns=int, inplace=True)
 
     s_rate_old_equalized, s_rate_old_mean = s_rate_equalization(s_rate_old)
 
-    energy_list = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1]
-    model_time_list = []
-    rec_time_list = []
-    rmse_list = []
-    precision_list = []
-    recall_list = []
-    f_measure_list = []
-    coverage_list = []
-    diversity_list = []
+    print('=' * 20 + 'ENERGY_RATIO=%s' % ENERGY_RATIO + '=' * 20)
+    model_start = time.time()  # 打点计时
+    s_rate_predict = matrix_prepare(s_rate_old_equalized, ENERGY_RATIO)
+    model_end = time.time()  # 打点计时
+    recommend_list_example = recommend_svd(s_rate_old_equalized, s_rate_predict,
+                                           1)
+    print(recommend_list_example)
+    print('Modeling Time: %s' % (model_end - model_start))  # 打点计时
 
-    for ENERGY_RATIO in energy_list:
-        print('=' * 20 + 'ENERGY_RATIO=%s' % ENERGY_RATIO + '=' * 20)
-        model_start = time.time()  # 打点计时
-        s_rate_predict = matrix_prepare(s_rate_old_equalized, ENERGY_RATIO)
-        model_end = time.time()  # 打点计时
-        recommend_list_example = recommend_svd(s_rate_old_equalized, s_rate_predict, 1)
-        print(recommend_list_example)
-        print('Modeling Time: %s' % (model_end - model_start))  # 打点计时
+    # RMSE
+    s_rate_new = pd.read_csv(MATRIX_PATH + '/s_rate_new.csv')
+    s_rate_new = s_rate_new.set_index('MovieID')
+    s_rate_new.rename(columns=int, inplace=True)
 
-        # RMSE
-        s_rate_new = pd.read_csv(MATRIX_PATH + '/s_rate_new.csv')
-        s_rate_new = s_rate_new.set_index('MovieID')
-        s_rate_new.rename(columns=int, inplace=True)
+    s_rate_predict_restore = s_rate_predict + s_rate_old_mean.fillna(0)
 
-        s_rate_predict_restore = s_rate_predict + s_rate_old_mean.fillna(0)
+    rmse = np.sqrt(((s_rate_new[~s_rate_new.isnull()] - (
+    s_rate_predict_restore[~s_rate_new.isnull()])) ** 2).sum().sum() / (
+                       (~s_rate_new.isnull()).sum().sum()))
 
-        rmse = np.sqrt(((s_rate_new[~s_rate_new.isnull()] - (s_rate_predict_restore[~s_rate_new.isnull()])) ** 2).sum().sum() /((~s_rate_new.isnull()).sum().sum()))
+    # 准确率 Precision & 召回率 Recall & 覆盖率 Coverage & 多样性 Diversity
 
-        # 准确率 Precision & 召回率 Recall & 覆盖率 Coverage & 多样性 Diversity
-
-        r_and_s_sum = 0
-        r_sum = 0
-        s_sum = 0
-        ru_set = set()
-        sum_diversity_u = 0
-        user_minus = 0
-        rec_time_sum = 0  # 打点计时
-        for u in s_rate_old.columns:
-            print('\r%s' % u, end='', flush=True)
-            select_set = set(s_rate_new[~s_rate_new[u].isnull()][u].index)
-            rec_start = time.time()  # 打点计时
-            recommend_list_with_score = recommend_svd(s_rate_old_equalized, s_rate_predict, u)
-            rec_end = time.time()  # 打点计时
-            recommend_list = [i[0] for i in recommend_list_with_score]
-            recommend_set = set(recommend_list)
-            r_and_s_sum += len(recommend_set & select_set)
-            r_sum += len(recommend_set)
-            s_sum += len(select_set)
-            if len(recommend_list) > 1:
-                sum_diversity_u += 1 - (
-                        s_similar.loc[
-                            recommend_list, recommend_list
-                        ].sum().sum() - len(recommend_list)) / (
-                                           0.5 * len(recommend_list) * (
-                                           len(recommend_list) - 1))
-            else:
-                user_minus += 1
-            for i in recommend_list:
-                ru_set.add(i)
-            rec_time_sum += rec_end - rec_start  # 打点计时
-        coverage = len(ru_set) / len(s_rate_old.index)
-        diversity = sum_diversity_u / (len(s_rate_old.columns) - user_minus)
-        rec_time = rec_time_sum / len(s_rate_old.columns)  # 打点计时
-        precision = r_and_s_sum / r_sum
-        recall = r_and_s_sum / s_sum
-        f_measure = (2 * precision * recall) / (precision + recall)
-        model_time_list.append(model_end - model_start)
-        rec_time_list.append(rec_time)
-        rmse_list.append(rmse)
-        precision_list.append(precision)
-        recall_list.append(recall)
-        f_measure_list.append(f_measure)
-        coverage_list.append(coverage)
-        diversity_list.append(diversity)
-        print('Average Recommend Time: %s' % rec_time)  # 打点计时
-        print('RMSE: %s' % rmse)
-        print('Precision: %s' % precision)
-        print('Recall: %s' % recall)
-        print('F-Measure: %s' % f_measure)
-        print('Coverage: %s' % coverage)
-        print('Diversity: %s' % diversity)
-
-    # model_start = time.time()  # 打点计时
-    # s_rate_predict = matrix_prepare(s_rate_old_equalized, ENERGY_RATIO)
-    # model_end = time.time()  # 打点计时
-    # recommend_list_example = recommend_svd(s_rate_old_equalized, s_rate_predict,
-    #                                        1)
-    # print(recommend_list_example)
-    # print('Modeling Time: %s' % (model_end - model_start))  # 打点计时
-    #
-    # # RMSE
-    # s_rate_new = pd.read_csv(MATRIX_PATH + '/s_rate_new.csv')
-    # s_rate_new = s_rate_new.set_index('MovieID')
-    # s_rate_new.rename(columns=int, inplace=True)
-    #
-    # s_rate_predict_restore = s_rate_predict + s_rate_old_mean.fillna(0)
-    #
-    # rmse = np.sqrt(((s_rate_new[~s_rate_new.isnull()] - (
-    # s_rate_predict_restore[~s_rate_new.isnull()])) ** 2).sum().sum() / (
-    #                    (~s_rate_new.isnull()).sum().sum()))
-    #
-    # print('RMSE: %s' % rmse)
-    #
-    # # 准确率 Precision & 召回率 Recall & 覆盖率 Coverage & 多样性 Diversity
-    #
-    # r_and_s_sum = 0
-    # r_sum = 0
-    # s_sum = 0
-    # ru_set = set()
-    # sum_diversity_u = 0
-    # user_minus = 0
-    # rec_time_sum = 0  # 打点计时
-    # for u in s_rate_old.columns:
-    #     print('\r%s' % u, end='', flush=True)
-    #     select_set = set(s_rate_new[~s_rate_new[u].isnull()][u].index)
-    #     rec_start = time.time()  # 打点计时
-    #     recommend_list_with_score = recommend_svd(s_rate_old_equalized,
-    #                                               s_rate_predict, u)
-    #     rec_end = time.time()  # 打点计时
-    #     recommend_list = [i[0] for i in recommend_list_with_score]
-    #     recommend_set = set(recommend_list)
-    #     r_and_s_sum += len(recommend_set & select_set)
-    #     r_sum += len(recommend_set)
-    #     s_sum += len(select_set)
-    #     if len(recommend_list) > 1:
-    #         sum_diversity_u += 1 - (
-    #                 s_similar.loc[
-    #                     recommend_list, recommend_list
-    #                 ].sum().sum() - len(recommend_list)) / (
-    #                                    0.5 * len(recommend_list) * (
-    #                                    len(recommend_list) - 1))
-    #     else:
-    #         user_minus += 1
-    #     for i in recommend_list:
-    #         ru_set.add(i)
-    #     rec_time_sum += rec_end - rec_start  # 打点计时
-    # coverage = len(ru_set) / len(s_rate_old.index)
-    # diversity = sum_diversity_u / (len(s_rate_old.columns) - user_minus)
-    # rec_time = rec_time_sum / len(s_rate_old.columns)  # 打点计时
-    # precision = r_and_s_sum / r_sum
-    # recall = r_and_s_sum / s_sum
-    # f_measure = (2 * precision * recall) / (precision + recall)
-    # print('Average Recommend Time: %s' % rec_time)  # 打点计时
-    # print('Precision: %s' % precision)
-    # print('Recall: %s' % recall)
-    # print('F-Measure: %s' % f_measure)
-    # print('Coverage: %s' % coverage)
-    # print('Diversity: %s' % diversity)
+    r_and_s_sum = 0
+    r_sum = 0
+    s_sum = 0
+    ru_set = set()
+    sum_diversity_u = 0
+    user_minus = 0
+    rec_time_sum = 0  # 打点计时
+    for u in s_rate_old.columns:
+        print('\r%s' % u, end='', flush=True)
+        select_set = set(s_rate_new[~s_rate_new[u].isnull()][u].index)
+        rec_start = time.time()  # 打点计时
+        recommend_list_with_score = recommend_svd(s_rate_old_equalized,
+                                                  s_rate_predict, u)
+        rec_end = time.time()  # 打点计时
+        recommend_list = [i[0] for i in recommend_list_with_score]
+        recommend_set = set(recommend_list)
+        r_and_s_sum += len(recommend_set & select_set)
+        r_sum += len(recommend_set)
+        s_sum += len(select_set)
+        if len(recommend_list) > 1:
+            sum_diversity_u += 1 - (
+                    s_similar.loc[
+                        recommend_list, recommend_list
+                    ].sum().sum() - len(recommend_list)) / (
+                                       0.5 * len(recommend_list) * (
+                                       len(recommend_list) - 1))
+        else:
+            user_minus += 1
+        for i in recommend_list:
+            ru_set.add(i)
+        rec_time_sum += rec_end - rec_start  # 打点计时
+    coverage = len(ru_set) / len(s_rate_old.index)
+    diversity = sum_diversity_u / (len(s_rate_old.columns) - user_minus)
+    rec_time = rec_time_sum / len(s_rate_old.columns)  # 打点计时
+    precision = r_and_s_sum / r_sum
+    recall = r_and_s_sum / s_sum
+    f_measure = (2 * precision * recall) / (precision + recall)
+    print('Average Recommend Time: %s' % rec_time)  # 打点计时
+    print('RMSE: %s' % rmse)
+    print('Precision: %s' % precision)
+    print('Recall: %s' % recall)
+    print('F-Measure: %s' % f_measure)
+    print('Coverage: %s' % coverage)
+    print('Diversity: %s' % diversity)

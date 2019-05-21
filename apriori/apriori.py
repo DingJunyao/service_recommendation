@@ -87,7 +87,7 @@ if __name__ == '__main__':
     te = TransactionEncoder()
     te_ary = te.fit(cluster).transform(cluster)
     df = pd.DataFrame(te_ary, columns=te.columns_)
-    frequent_itemsets = apriori(df, min_support=0.09, use_colnames=True)
+    frequent_itemsets = apriori(df, min_support=0.08, use_colnames=True)
     ar = association_rules(frequent_itemsets, metric="confidence",
                            min_threshold=0.2)
     model_end = time.time()  # 打点计时

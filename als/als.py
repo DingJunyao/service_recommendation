@@ -24,40 +24,7 @@ def s_rate_equalization(s_rate):
     return (s_rate - s_rate.mean()), s_rate_mean
 
 
-# def cw_sgd(R, k, alpha=0.005, lambda_v=0.005, epoch=0.0001):
-#     U = np.random.rand(R.shape[0], k)
-#     V = np.random.rand(R.shape[1], k)
-#     S = []
-#     for i in range(R.shape[0]):
-#         for j in range(R.shape[1]):
-#             if R[i][j] == 0:
-#                 S.append((i, j))
-#     for q in range(k):
-#         print('q=%s' % q)
-#         convergence = False
-#         while not convergence:
-#             random.shuffle(S)
-#             E = 0
-#             for ob in S:
-#                 for i in range(R.shape[0]):
-#                     for j in range(R.shape[1]):
-#                         e = R[i][j] - U[i][q] * V[j][q]
-#                         E += e ** 2
-#                         utmp = U[i][q] + alpha * (e * V[j][q] - lambda_v * U[i][q])
-#                         vtmp = V[j][q] + alpha * (e * U[i][q] - lambda_v * V[j][q])
-#                         U[i][q] = utmp
-#                         V[j][q] = vtmp
-#             epoch_new = 0.5 * E + lambda_v * 0.5 * (U ** 2).sum() + lambda_v * 0.5 * (V ** 2).sum()
-#             convergence = (epoch_new < epoch)
-#             print('epoch=%s' % epoch_new)
-#         for ob2 in S:
-#             for i in range(R.shape[0]):
-#                 for j in range(R.shape[1]):
-#                     R[i][j] = R[i][j]
-#     return U, V
-
-
-def als(R, k, steps=1000, epoch=0.00001):
+def als(R, k, steps=1000, epoch=0.00001, lambda_u=0.0, lambda_i=0.0):
     """
     执行ALS算法
 
@@ -67,50 +34,40 @@ def als(R, k, steps=1000, epoch=0.00001):
     :param epoch:
     :return:
     """
-    R_shape = R.shape
-    U = np.random.rand(k, R_shape[0])
-    I = np.random.rand(k, R_shape[1])
+    R_T = R.T   # n*m
+    R_T_shape = R_T.shape
+    U = np.random.rand(R_T_shape[0], k)   # n*k
+    I = np.random.rand(R_T_shape[1], k)   # m*k
     Us = []
     Is = []
-    epoch_U = []
-    epoch_I = []
+    ep = []
+    ep_s = ((R_T - U.dot(I.T)) ** 2).sum() \
+           + lambda_u * ((np.linalg.norm(U, axis=1) ** 2).sum()) \
+           + lambda_i * ((np.linalg.norm(I, axis=1) ** 2).sum())
+    ep.append(ep_s)
     Us.append(U.copy())
     Is.append(I.copy())
     for step in range(steps):
-        print('\r%s' % step, end='', flush=True)
-        epu = 0
-        epi = 0
-        for a in range(U.shape[1]):
-            epu += ((np.fabs(U[:, a] - np.linalg.inv(I.dot(I.T)).dot(I).dot(R[a].T))).sum())
-            U[:, a] = np.linalg.inv(I.dot(I.T)).dot(I).dot(R[a].T)
-        for b in range(I.shape[1]):
-            epi += ((np.fabs(I[:, b] - np.linalg.inv(U.dot(U.T)).dot(U).dot(R[:, b].T))).sum())
-            I[:, b] = np.linalg.inv(U.dot(U.T)).dot(U).dot(R[:, b].T)
-        epu_avg = epu / U.shape[1]
-        epi_avg = epi / I.shape[1]
-        epoch_U.append(epu_avg)
-        epoch_I.append(epi_avg)
+        for u in range(U.shape[0]):
+            U[u] = (R_T[u].dot(I)).dot(np.linalg.inv(I.T.dot(I) + lambda_u * np.eye(k)))
+        for i in range(I.shape[1]):
+            I[i] = R_T[:, i].dot(U).dot(np.linalg.inv(U.T.dot(U) + lambda_i * np.eye(k)))
+        ep_s = ((R_T - U.dot(I.T)) ** 2).sum()\
+               + lambda_u * ((np.linalg.norm(U, axis=1) ** 2).sum())\
+               + lambda_i * ((np.linalg.norm(I, axis=1) ** 2).sum())
         Us.append(U.copy())
         Is.append(I.copy())
-        if epu_avg < epoch and epi_avg < epoch:
+        ep.append(ep_s)
+        print('\r%s\t%s' % (step, ep_s), end='', flush=True)
+        if ep_s < epoch:
             break
-    epu = 0
-    epi = 0
-    for a in range(U.shape[1]):
-        epu += ((np.fabs(
-            U[:, a] - np.linalg.inv(I.dot(I.T)).dot(I).dot(R[a].T))).sum())
-    for b in range(I.shape[1]):
-        epi += ((np.fabs(
-            I[:, b] - np.linalg.inv(U.dot(U.T)).dot(U).dot(R[:, b].T))).sum())
-    epu_avg = epu / U.shape[1]
-    epi_avg = epi / I.shape[1]
-    epoch_U.append(epu_avg)
-    epoch_I.append(epi_avg)
-    return Us, Is, epoch_U, epoch_I
+    return Us, Is, ep
+
 
 
 def s_rate_predict_gen(s_rate, U, I):
-    NewData = U.T.dot(I)
+    # NewData = U.T.dot(I)
+    NewData = U.dot(I.T).T
     ND_DF = pd.DataFrame(NewData, index=s_rate.index, columns=s_rate.columns)
     # 将原矩阵评分添加进去
     # s_rate_predict = (
@@ -120,8 +77,8 @@ def s_rate_predict_gen(s_rate, U, I):
     return s_rate_predict
 
 
-def matrix_preparation(s_rate, k, steps=1000, epoch=0.00001):
-    Us, Is, epoch_U, epoch_I = als(s_rate.fillna(0).values, k, steps, epoch)
+def matrix_preparation(s_rate, k, steps=1000, epoch=0.00001, lambda_u=0.01, lambda_i=0.01):
+    Us, Is, ep = als(s_rate.fillna(0).values, k, steps, epoch, lambda_u, lambda_i)
     # NewData = Us[-1].T.dot(Is[-1])
     # ND_DF = pd.DataFrame(NewData, index=s_rate.index, columns=s_rate.columns)
     # 将原矩阵评分添加进去
@@ -130,7 +87,7 @@ def matrix_preparation(s_rate, k, steps=1000, epoch=0.00001):
     # 如果只看近似值的话就使用这个
     #s_rate_predict = ND_DF
     s_rate_predict = s_rate_predict_gen(s_rate, Us[-1], Is[-1])
-    return s_rate_predict, Us, Is, epoch_U, epoch_I
+    return s_rate_predict, Us, Is, ep
 
 
 def recommend_als(s_rate_equalized, s_rate_predict, u, num=10):
@@ -178,14 +135,15 @@ def recommend_als(s_rate_equalized, s_rate_predict, u, num=10):
 
 
 if __name__ == '__main__':
-    K = 80
-    STEPS = 1000
+    K = 40
+    STEPS = 100
     RECOMMEND_NUM = 10
-    EPOCH = 0.0001
-    SIMILAR_LIMIT = 0.8
+    EPOCH = 1
+    LAMBDA_U = 0.00001
+    LAMBDA_I = 0.00001
 
-    ML_DS_PATH = '../dataset/ml-out'
-    MATRIX_PATH = '../temp'
+    ML_DS_PATH = '../dataset/ml-out-sample'
+    MATRIX_PATH = '../temp-sample'
 
     s_rate_old = pd.read_csv(MATRIX_PATH + '/s_rate_old.csv')
     s_rate_old = s_rate_old.set_index('MovieID')
@@ -197,7 +155,7 @@ if __name__ == '__main__':
 
     s_rate_old_equalized, s_rate_old_mean = s_rate_equalization(s_rate_old)
     model_start = time.time()  # 打点计时
-    s_rate_predict, Us, Is, epoch_U, epoch_I = matrix_preparation(s_rate_old_equalized, K, STEPS, EPOCH)
+    s_rate_predict, Us, Is, epo = matrix_preparation(s_rate_old_equalized, K, STEPS, EPOCH, LAMBDA_U, LAMBDA_I)
     model_end = time.time()  # 打点计时
     recommend_list_example = recommend_als(s_rate_old_equalized, s_rate_predict, 1)
     print(recommend_list_example)
