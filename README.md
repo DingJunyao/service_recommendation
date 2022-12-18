@@ -4,7 +4,7 @@
 
 ## 语言与运行前准备
 
-本仓库中的代码使用Python 3语言，在Python 3.6和3.7的环境下都可以运行成功。
+本仓库中的代码使用 Python 3 语言，在 Python 3.6 和 3.7 的环境下都可以运行成功。
 
 所需的运行库如下：
 
@@ -36,6 +36,35 @@
 
 使用署名-相同方式共享 4.0 国际（CC-BY-SA 4.0）协议分享。也就是说，在使用代码时，请标注有效的来源（如名称、GitHub链接）。如果作为学术研究，希望可以引用该论文（虽然我的论文写得并不好）。
 
-（论文信息待补充）
+## 相关论文
+
+> 基于本论文的研究成果，另外还有出版的论文，可优先引用。
+
+```
+# 原论文附注
+Wang L, Zhang Y, Zheng X, Yu Q, Chen S, Ding J. Singular value decomposition-based behavior-aware cloud service application programming interfaces recommendation for large-scale software cloud directory platforms. Concurrency Computat Pract Exper. 2022;e7121. doi: 10.1002/cpe.7121
+
+# GB/T 7714
+Wang L, Zhang Y, Zheng X, et al. Singular value decomposition‐based behavior‐aware cloud service application programming interfaces recommendation for large‐scale software cloud directory platforms[J]. Concurrency and Computation: Practice and Experience, 2022, 34(21): e7121.
+
+# MLA
+Wang, Lei, et al. "Singular value decomposition‐based behavior‐aware cloud service application programming interfaces recommendation for large‐scale software cloud directory platforms." Concurrency and Computation: Practice and Experience 34.21 (2022): e7121.
+
+# APA
+Wang, L., Zhang, Y., Zheng, X., Yu, Q., Chen, S., & Ding, J. (2022). Singular value decomposition‐based behavior‐aware cloud service application programming interfaces recommendation for large‐scale software cloud directory platforms. Concurrency and Computation: Practice and Experience, 34(21), e7121.
+```
+
+> 鉴于该论文为学士学位论文，未普遍出版，请自行决定是否引用。
+
+```
+# GB/T 7714
+丁俊尧. 群智化云服务API推荐方法[D]. 南京林业大学, 2019.
+
+# MLA
+丁俊尧. 群智化云服务API推荐方法. Diss. 南京林业大学, 2019.
+
+# APA
+丁俊尧. (2019) 群智化云服务API推荐方法. dissertation. 
+```
 
 [1]: https://grouplens.org/datasets/movielens/
